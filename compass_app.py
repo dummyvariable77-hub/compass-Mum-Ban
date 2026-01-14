@@ -5,66 +5,65 @@ import math
 
 DATA_FILE = "compass_state.json"
 
-# ───────── STATE HANDLING ─────────
+# ───────── STATE FUNCTIONS ─────────
 def load_state():
     try:
         with open(DATA_FILE, "r") as f:
             return json.load(f)
     except:
-        return {"position": 50, "last_updated": str(date.today())}
+        return {"position": 50, "last_updated": "1970-01-01"}
 
 def save_state(position):
-    data = {
-        "position": position,
-        "last_updated": str(date.today())
-    }
     with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
+        json.dump(
+            {
+                "position": position,
+                "last_updated": str(date.today())
+            },
+            f
+        )
 
-# ───────── APP CONFIG ─────────
-st.set_page_config(
-    page_title="Mumbai–Bangalore Compass",
-    layout="centered"
-)
+# ───────── APP ─────────
+st.set_page_config(page_title="Mumbai–Bangalore Compass", layout="centered")
 
 st.title("🧭 Mumbai ↔ Bangalore Compass")
-st.caption("Daily adjustable • Persistent • Visual")
+st.caption("Daily locked • Persistent • Shared")
 
 state = load_state()
 today = str(date.today())
 
 st.markdown(f"**Last adjusted:** {state['last_updated']}")
 
-# ───────── SLIDER ─────────
+# ───────── SLIDER (BOUND TO SAVED VALUE) ─────────
 position = st.slider(
     "Compass Position",
-    0, 100,
-    int(state["position"]),
+    0,
+    100,
+    value=int(state["position"]),
     help="0 = Bangalore | 50 = Midway | 100 = Mumbai"
 )
 
-# ───────── DAILY LOCK ─────────
+# ───────── SAVE LOGIC ─────────
 if today != state["last_updated"]:
     if st.button("Save Today's Position"):
         save_state(position)
-        st.success("Compass position saved for today.")
+        st.success("Saved. Compass locked for today.")
+        st.rerun()
 else:
     st.info("Compass is locked for today. You can adjust again tomorrow.")
 
 # ───────── MEANING ─────────
-if position <= 33:
+if state["position"] <= 33:
     meaning = "Bias → Bangalore"
-elif position <= 66:
+elif state["position"] <= 66:
     meaning = "Balanced / Midway"
 else:
     meaning = "Bias → Mumbai"
 
 # ───────── COMPASS NEEDLE ─────────
-# Convert position (0–100) to angle (-90° to +90°)
-angle_deg = (position - 50) * 1.8
+angle_deg = (state["position"] - 50) * 1.8
 angle_rad = math.radians(angle_deg)
 
-# Needle endpoint
 x = math.cos(angle_rad)
 y = math.sin(angle_rad)
 
@@ -75,7 +74,6 @@ svg = f"""
   <circle cx="0" cy="0" r="1" stroke="black" stroke-width="0.03" fill="none"/>
   <line x1="0" y1="0" x2="{x}" y2="{-y}" stroke="red" stroke-width="0.05"/>
   <circle cx="0" cy="0" r="0.05" fill="black"/>
-
   <text x="-1" y="0" font-size="0.15" text-anchor="start">Bangalore</text>
   <text x="1" y="0" font-size="0.15" text-anchor="end">Mumbai</text>
 </svg>
