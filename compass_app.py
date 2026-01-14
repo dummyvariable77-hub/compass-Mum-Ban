@@ -1,9 +1,12 @@
 import streamlit as st
 import json
-from datetime import date
+from datetime import datetime, date, time
 import math
+import pytz
 
 DATA_FILE = "compass_state.json"
+IST = pytz.timezone("Asia/Kolkata")
+SAVE_TIME = time(9, 15)  # 9:15 AM IST
 
 # ───────── STATE FUNCTIONS ─────────
 def load_state():
@@ -23,18 +26,22 @@ def save_state(position):
             f
         )
 
+# ───────── TIME LOGIC ─────────
+now_ist = datetime.now(IST)
+today = str(now_ist.date())
+after_915 = now_ist.time() >= SAVE_TIME
+
 # ───────── APP ─────────
 st.set_page_config(page_title="Mumbai–Bangalore Compass", layout="centered")
 
 st.title("🧭 Mumbai ↔ Bangalore Compass")
-st.caption("Daily locked • Persistent • Shared")
+st.caption("Daily locked • Saves after 9:15 AM IST")
 
 state = load_state()
-today = str(date.today())
 
 st.markdown(f"**Last adjusted:** {state['last_updated']}")
 
-# ───────── SLIDER (BOUND TO SAVED VALUE) ─────────
+# ───────── SLIDER ─────────
 position = st.slider(
     "Compass Position",
     0,
@@ -43,14 +50,17 @@ position = st.slider(
     help="0 = Bangalore | 50 = Midway | 100 = Mumbai"
 )
 
-# ───────── SAVE LOGIC ─────────
+# ───────── SAVE CONDITIONS ─────────
 if today != state["last_updated"]:
-    if st.button("Save Today's Position"):
-        save_state(position)
-        st.success("Saved. Compass locked for today.")
-        st.rerun()
+    if after_915:
+        if st.button("Save Today's Position"):
+            save_state(position)
+            st.success("Saved after 9:15 AM IST. Compass locked for today.")
+            st.rerun()
+    else:
+        st.warning("Saving enabled after **9:15 AM IST**.")
 else:
-    st.info("Compass is locked for today. You can adjust again tomorrow.")
+    st.info("Compass already locked for today.")
 
 # ───────── MEANING ─────────
 if state["position"] <= 33:
@@ -74,11 +84,11 @@ svg = f"""
   <circle cx="0" cy="0" r="1" stroke="black" stroke-width="0.03" fill="none"/>
   <line x1="0" y1="0" x2="{x}" y2="{-y}" stroke="red" stroke-width="0.05"/>
   <circle cx="0" cy="0" r="0.05" fill="black"/>
-  <text x="-1" y="0" font-size="0.15" text-anchor="start">Bangalore</text>
-  <text x="1" y="0" font-size="0.15" text-anchor="end">Mumbai</text>
+
+  <text x="-1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="start">Ban</text>
+  <text x="1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="end">Mum</text>
 </svg>
 """
 
 st.markdown(svg, unsafe_allow_html=True)
-
 st.metric("Current Compass Bias", meaning)
