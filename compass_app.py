@@ -82,15 +82,29 @@ y = math.sin(angle_rad)
 st.markdown("### 🧭 Compass")
 
 svg = f"""
-<svg width="300" height="300" viewBox="-1.2 -1.2 2.4 2.4">
+<svg width="400" height="200" viewBox="-1.4 -1.2 2.8 2.4">
+
+  <!-- Compass circle -->
   <circle cx="0" cy="0" r="1" stroke="black" stroke-width="0.03" fill="none"/>
+
+  <!-- Horizontal compass line -->
+  <line x1="-1" y1="0" x2="1" y2="0" stroke="black" stroke-width="0.03"/>
+
+  <!-- Direction needle -->
   <line x1="0" y1="0" x2="{x}" y2="{-y}" stroke="red" stroke-width="0.05"/>
   <circle cx="0" cy="0" r="0.05" fill="black"/>
 
-  <text x="-1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="start">Mum</text>
-  <text x="1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="end">Ban</text>
+  <!-- Labels at ends -->
+  <text x="-1.32" y="0.06" font-size="0.2" font-weight="bold" text-anchor="end">
+    Mum
+  </text>
+  <text x="1.32" y="0.06" font-size="0.2" font-weight="bold" text-anchor="start">
+    Ban
+  </text>
+
 </svg>
 """
+
 
 st.markdown(svg, unsafe_allow_html=True)
 st.metric("Current Compass Bias", meaning)
