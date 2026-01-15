@@ -31,44 +31,46 @@ now_ist = datetime.now(IST)
 today = str(now_ist.date())
 after_915 = now_ist.time() >= SAVE_TIME
 
+state = load_state()
+locked_today = state["last_updated"] == today
+
 # ───────── APP ─────────
 st.set_page_config(page_title="Mumbai–Bangalore Compass", layout="centered")
 
 st.title("🧭 Mumbai ↔ Bangalore Compass")
-st.caption("Daily locked • Saves after 9:15 AM IST")
-
-state = load_state()
+st.caption("Daily locked • Adjustable after 9:15 AM IST")
 
 st.markdown(f"**Last adjusted:** {state['last_updated']}")
 
-# ───────── SLIDER ─────────
+# ───────── SLIDER (LOCKED LOGIC) ─────────
 position = st.slider(
     "Compass Position",
     0,
     100,
     value=int(state["position"]),
-    help="0 = Bangalore | 50 = Midway | 100 = Mumbai"
+    disabled=locked_today,
+    help="0 = Mumbai | 50 = Midway | 100 = Bangalore"
 )
 
-# ───────── SAVE CONDITIONS ─────────
-if today != state["last_updated"]:
+# ───────── SAVE BUTTON ─────────
+if not locked_today:
     if after_915:
         if st.button("Save Today's Position"):
             save_state(position)
-            st.success("Saved after 9:15 AM IST. Compass locked for today.")
+            st.success("Saved. Compass locked for today.")
             st.rerun()
     else:
         st.warning("Saving enabled after **9:15 AM IST**.")
 else:
-    st.info("Compass already locked for today.")
+    st.info("🔒 Compass locked for today.")
 
-# ───────── MEANING ─────────
+# ───────── BIAS MEANING ─────────
 if state["position"] <= 33:
-    meaning = "Bias → Bangalore"
+    meaning = "Bias → Mumbai"
 elif state["position"] <= 66:
     meaning = "Balanced / Midway"
 else:
-    meaning = "Bias → Mumbai"
+    meaning = "Bias → Bangalore"
 
 # ───────── COMPASS NEEDLE ─────────
 angle_deg = (state["position"] - 50) * 1.8
@@ -85,8 +87,8 @@ svg = f"""
   <line x1="0" y1="0" x2="{x}" y2="{-y}" stroke="red" stroke-width="0.05"/>
   <circle cx="0" cy="0" r="0.05" fill="black"/>
 
-  <text x="-1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="start">Ban</text>
-  <text x="1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="end">Mum</text>
+  <text x="-1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="start">Mum</text>
+  <text x="1.05" y="0.05" font-size="0.18" font-weight="bold" text-anchor="end">Ban</text>
 </svg>
 """
 
