@@ -82,7 +82,7 @@ y = math.sin(angle_rad)
 st.markdown("### 🧭 Compass")
 
 svg = f"""
-<svg width="400" height="200" viewBox="-1.4 -1.2 2.8 2.4">
+<svg width="400" height="220" viewBox="-1.4 -1.2 2.8 2.4">
 
   <!-- Compass circle -->
   <circle cx="0" cy="0" r="1" stroke="black" stroke-width="0.03" fill="none"/>
@@ -94,16 +94,24 @@ svg = f"""
   <line x1="0" y1="0" x2="{x}" y2="{-y}" stroke="red" stroke-width="0.05"/>
   <circle cx="0" cy="0" r="0.05" fill="black"/>
 
-  <!-- Labels at ends -->
-  <text x="-1.32" y="0.06" font-size="0.2" font-weight="bold" text-anchor="end">
-    Mum
-  </text>
-  <text x="1.32" y="0.06" font-size="0.2" font-weight="bold" text-anchor="start">
-    Ban
-  </text>
+  <!-- LEFT LABEL (Mum) -->
+  <rect x="-1.52" y="-0.12" width="0.48" height="0.24" fill="white"/>
+  <text x="-1.28" y="0.08" font-size="0.2" font-weight="bold"
+        text-anchor="middle" fill="black">Mum</text>
+
+  <!-- MID LABEL -->
+  <rect x="-0.24" y="0.18" width="0.48" height="0.22" fill="white"/>
+  <text x="0" y="0.35" font-size="0.16" font-weight="bold"
+        text-anchor="middle" fill="black">Mid</text>
+
+  <!-- RIGHT LABEL (Ban) -->
+  <rect x="1.04" y="-0.12" width="0.48" height="0.24" fill="white"/>
+  <text x="1.28" y="0.08" font-size="0.2" font-weight="bold"
+        text-anchor="middle" fill="black">Ban</text>
 
 </svg>
 """
+
 
 
 st.markdown(svg, unsafe_allow_html=True)
