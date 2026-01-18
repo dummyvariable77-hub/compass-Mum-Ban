@@ -3,10 +3,27 @@ import json
 from datetime import datetime, date, time
 import math
 import pytz
+import random
 
 DATA_FILE = "compass_state.json"
 IST = pytz.timezone("Asia/Kolkata")
-SAVE_TIME = time(9, 15)  # 9:15 AM IST
+SAVE_TIME = time(9, 15)
+
+# ───────── ROMANTIC QUOTES ─────────
+QUOTES = [
+    "Some distances are measured not in miles, but in missing.",
+    "Every direction feels empty when the heart knows where it belongs.",
+    "Longing is love’s way of pointing home.",
+    "Even silence remembers you.",
+    "I miss you in ways the compass cannot measure.",
+    "Between here and there, my heart waits.",
+    "Distance teaches the heart how deeply it feels.",
+    "Every day leans slightly toward where you are."
+]
+
+def daily_quote():
+    today = date.today().toordinal()
+    return QUOTES[today % len(QUOTES)]
 
 # ───────── STATE FUNCTIONS ─────────
 def load_state():
@@ -14,17 +31,25 @@ def load_state():
         with open(DATA_FILE, "r") as f:
             return json.load(f)
     except:
-        return {"position": 50, "last_updated": "1970-01-01"}
+        return {
+            "position": 50,
+            "last_updated": "1970-01-01",
+            "ban_count": 0,
+            "mum_count": 0
+        }
 
-def save_state(position):
+def save_state(position, state):
+    # Increment counters
+    if position > 50:
+        state["ban_count"] += 1
+    elif position < 50:
+        state["mum_count"] += 1
+
+    state["position"] = position
+    state["last_updated"] = str(date.today())
+
     with open(DATA_FILE, "w") as f:
-        json.dump(
-            {
-                "position": position,
-                "last_updated": str(date.today())
-            },
-            f
-        )
+        json.dump(state, f)
 
 # ───────── TIME LOGIC ─────────
 now_ist = datetime.now(IST)
@@ -34,45 +59,70 @@ after_915 = now_ist.time() >= SAVE_TIME
 state = load_state()
 locked_today = state["last_updated"] == today
 
+# Reset to midpoint every new day
+if not locked_today:
+    state["position"] = 50
+
 # ───────── APP ─────────
 st.set_page_config(page_title="Mumbai–Bangalore Compass", layout="centered")
-
+st.image(
+    "https://upload.wikimedia.org/wikipedia/commons/0/0b/Teddy_bear_2003.jpg",
+    width=90
+)
 st.title("🧭 Mumbai ↔ Bangalore Compass")
-st.caption("Daily locked • Adjustable after 9:15 AM IST")
+st.caption("A small ritual of direction, longing, and preference 🧸")
+
+st.markdown(f"💌 *{daily_quote()}*")
 
 st.markdown(f"**Last adjusted:** {state['last_updated']}")
 
-# ───────── SLIDER (LOCKED LOGIC) ─────────
+# ───────── SLIDER ─────────
 position = st.slider(
     "Compass Position",
     0,
     100,
     value=int(state["position"]),
     disabled=locked_today,
-    help="0 = Mumbai | 50 = Midway | 100 = Bangalore"
+    help="Left = Mumbai | Mid = Balance | Right = Bangalore"
 )
 
 # ───────── SAVE BUTTON ─────────
 if not locked_today:
     if after_915:
-        if st.button("Save Today's Position"):
-            save_state(position)
-            st.success("Saved. Compass locked for today.")
+        if st.button("Save Today's Direction"):
+            save_state(position, state)
+            st.success("Saved. Direction remembered for today.")
             st.rerun()
     else:
-        st.warning("Saving enabled after **9:15 AM IST**.")
+        st.warning("Saving opens after **9:15 AM IST**.")
 else:
-    st.info("🔒 Compass locked for today.")
+    st.info("🔒 Direction locked for today.")
 
-# ───────── BIAS MEANING ─────────
-if state["position"] <= 33:
-    meaning = "Bias → Mumbai"
-elif state["position"] <= 66:
-    meaning = "Balanced / Midway"
+# ───────── PLAYFUL MESSAGE ─────────
+if locked_today:
+    if state["position"] > 50:
+        playful = "🐻💛 Teddy smiles… Bangalore wins today. That felt right."
+    elif state["position"] < 50:
+        playful = "🐻😅 Teddy tilts head… Mumbai again? Hmm. Are you sure?"
+    else:
+        playful = "🐻🤍 Teddy waits patiently… stuck in the middle today."
 else:
-    meaning = "Bias → Bangalore"
+    if position > 50:
+        playful = "🐻✨ Ooo, leaning toward Bangalore already!"
+    elif position < 50:
+        playful = "🐻🙃 Teddy gently nudges right… just saying."
+    else:
+        playful = "🐻🫶 Right in the middle. No pressure."
 
-# ───────── COMPASS NEEDLE ─────────
+st.markdown(f"### {playful}")
+
+
+# ───────── COUNTERS ─────────
+col1, col2 = st.columns(2)
+col1.metric("← Mum Days", state["mum_count"])
+col2.metric("Ban Days →", state["ban_count"])
+
+# ───────── SEMICIRCLE COMPASS ─────────
 angle_deg = (state["position"] - 50) * 1.8
 angle_rad = math.radians(angle_deg)
 
@@ -82,37 +132,31 @@ y = math.sin(angle_rad)
 st.markdown("### 🧭 Compass")
 
 svg = f"""
-<svg width="400" height="220" viewBox="-1.4 -1.2 2.8 2.4">
+<svg width="420" height="240" viewBox="-1.4 -1.1 2.8 1.8">
 
-  <!-- Compass circle -->
-  <circle cx="0" cy="0" r="1" stroke="black" stroke-width="0.03" fill="none"/>
+  <!-- Semicircle arc -->
+  <path d="M -1 0 A 1 1 0 0 1 1 0"
+        fill="none" stroke="black" stroke-width="0.03"/>
 
-  <!-- Horizontal compass line -->
-  <line x1="-1" y1="0" x2="1" y2="0" stroke="black" stroke-width="0.03"/>
-
-  <!-- Direction needle -->
-  <line x1="0" y1="0" x2="{x}" y2="{-y}" stroke="red" stroke-width="0.05"/>
+  <!-- Needle -->
+  <line x1="0" y1="0" x2="{x}" y2="{-abs(y)}"
+        stroke="red" stroke-width="0.05"/>
   <circle cx="0" cy="0" r="0.05" fill="black"/>
 
-  <!-- LEFT LABEL (Mum) -->
-  <rect x="-1.52" y="-0.12" width="0.48" height="0.24" fill="white"/>
-  <text x="-1.28" y="0.08" font-size="0.2" font-weight="bold"
-        text-anchor="middle" fill="black">Mum</text>
+  <!-- Labels -->
+  <rect x="-1.48" y="-0.12" width="0.48" height="0.24" fill="white"/>
+  <text x="-1.24" y="0.08" font-size="0.2" font-weight="bold"
+        text-anchor="middle">Mum</text>
 
-  <!-- MID LABEL -->
-  <rect x="-0.24" y="0.18" width="0.48" height="0.22" fill="white"/>
-  <text x="0" y="0.35" font-size="0.16" font-weight="bold"
-        text-anchor="middle" fill="black">Mid</text>
+  <rect x="-0.24" y="-0.55" width="0.48" height="0.22" fill="white"/>
+  <text x="0" y="-0.38" font-size="0.16" font-weight="bold"
+        text-anchor="middle">Mid</text>
 
-  <!-- RIGHT LABEL (Ban) -->
-  <rect x="1.04" y="-0.12" width="0.48" height="0.24" fill="white"/>
-  <text x="1.28" y="0.08" font-size="0.2" font-weight="bold"
-        text-anchor="middle" fill="black">Ban</text>
+  <rect x="1.00" y="-0.12" width="0.48" height="0.24" fill="white"/>
+  <text x="1.24" y="0.08" font-size="0.2" font-weight="bold"
+        text-anchor="middle">Ban</text>
 
 </svg>
 """
 
-
-
 st.markdown(svg, unsafe_allow_html=True)
-st.metric("Current Compass Bias", meaning)
