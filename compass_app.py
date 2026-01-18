@@ -77,7 +77,7 @@ st.image(
 )
 
 st.title("🧭 Mumbai ↔ Bangalore Compass")
-st.caption("A small daily ritual of direction, longing, and preference 🧸")
+
 
 # Quote
 st.markdown(f"💌 *{daily_quote()}*")
