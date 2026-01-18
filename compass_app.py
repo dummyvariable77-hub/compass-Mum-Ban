@@ -9,6 +9,11 @@ DATA_FILE = "compass_state.json"
 IST = pytz.timezone("Asia/Kolkata")
 SAVE_TIME = time(9, 15)  # 9:15 AM IST
 
+# ───────────────── PUPPY GIFS ─────────────────
+PUPPY_HAPPY = "https://media.giphy.com/media/l0MYC0LajbaPoEADu/giphy.gif"      # happy puppy
+PUPPY_CONFUSED = "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif"  # confused puppy
+PUPPY_CALM = "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif"       # calm puppy
+
 # ───────────────── ROMANTIC QUOTES ─────────────────
 QUOTES = [
     "Some distances are measured not in miles, but in missing.",
@@ -63,7 +68,7 @@ after_915 = now_ist.time() >= SAVE_TIME
 state = load_state()
 locked_today = state["last_updated"] == today
 
-# Reset compass daily
+# Reset to midpoint every new day
 if not locked_today:
     state["position"] = 50
 
@@ -77,12 +82,30 @@ st.image(
 )
 
 st.title("🧭 Mumbai ↔ Bangalore Compass")
+st.caption("A small daily ritual of direction, longing, and preference 🧸")
 
+# ───────────────── QUOTE + REACTIVE PUPPY ─────────────────
+if locked_today:
+    pos_for_puppy = state["position"]
+else:
+    pos_for_puppy = 50
 
-# Quote
-st.markdown(f"💌 *{daily_quote()}*")
+if pos_for_puppy > 50:
+    puppy_gif = PUPPY_HAPPY
+elif pos_for_puppy < 50:
+    puppy_gif = PUPPY_CONFUSED
+else:
+    puppy_gif = PUPPY_CALM
 
-# Monthly summary
+quote_col, puppy_col = st.columns([4, 1])
+
+with quote_col:
+    st.markdown(f"💌 *{daily_quote()}*")
+
+with puppy_col:
+    st.image(puppy_gif, width=90)
+
+# ───────────────── MONTHLY SUMMARY ─────────────────
 current_month = date.today().strftime("%Y-%m")
 if state["last_month"] != current_month:
     if state["ban_count"] > state["mum_count"]:
