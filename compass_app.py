@@ -3,13 +3,13 @@ import json
 from datetime import datetime, date, time
 import math
 import pytz
-import random
 
+# ───────────────── CONFIG ─────────────────
 DATA_FILE = "compass_state.json"
 IST = pytz.timezone("Asia/Kolkata")
-SAVE_TIME = time(9, 15)
+SAVE_TIME = time(9, 15)  # 9:15 AM IST
 
-# ───────── ROMANTIC QUOTES ─────────
+# ───────────────── ROMANTIC QUOTES ─────────────────
 QUOTES = [
     "Some distances are measured not in miles, but in missing.",
     "Every direction feels empty when the heart knows where it belongs.",
@@ -22,10 +22,9 @@ QUOTES = [
 ]
 
 def daily_quote():
-    today = date.today().toordinal()
-    return QUOTES[today % len(QUOTES)]
+    return QUOTES[date.today().toordinal() % len(QUOTES)]
 
-# ───────── STATE FUNCTIONS ─────────
+# ───────────────── STATE FUNCTIONS ─────────────────
 def load_state():
     try:
         with open(DATA_FILE, "r") as f:
@@ -35,15 +34,20 @@ def load_state():
             "position": 50,
             "last_updated": "1970-01-01",
             "ban_count": 0,
-            "mum_count": 0
+            "mum_count": 0,
+            "ban_streak": 0,
+            "last_month": ""
         }
 
 def save_state(position, state):
-    # Increment counters
     if position > 50:
         state["ban_count"] += 1
+        state["ban_streak"] += 1
     elif position < 50:
         state["mum_count"] += 1
+        state["ban_streak"] = 0
+    else:
+        state["ban_streak"] = 0
 
     state["position"] = position
     state["last_updated"] = str(date.today())
@@ -51,7 +55,7 @@ def save_state(position, state):
     with open(DATA_FILE, "w") as f:
         json.dump(state, f)
 
-# ───────── TIME LOGIC ─────────
+# ───────────────── TIME LOGIC ─────────────────
 now_ist = datetime.now(IST)
 today = str(now_ist.date())
 after_915 = now_ist.time() >= SAVE_TIME
@@ -59,24 +63,41 @@ after_915 = now_ist.time() >= SAVE_TIME
 state = load_state()
 locked_today = state["last_updated"] == today
 
-# Reset to midpoint every new day
+# Reset compass daily
 if not locked_today:
     state["position"] = 50
 
-# ───────── APP ─────────
+# ───────────────── APP UI ─────────────────
 st.set_page_config(page_title="Mumbai–Bangalore Compass", layout="centered")
+
+# Teddy image
 st.image(
     "https://upload.wikimedia.org/wikipedia/commons/0/0b/Teddy_bear_2003.jpg",
     width=90
 )
-st.title("🧭 Mumbai ↔ Bangalore Compass")
-st.caption("A small ritual of direction, longing, and preference 🧸")
 
+st.title("🧭 Mumbai ↔ Bangalore Compass")
+st.caption("A small daily ritual of direction, longing, and preference 🧸")
+
+# Quote
 st.markdown(f"💌 *{daily_quote()}*")
+
+# Monthly summary
+current_month = date.today().strftime("%Y-%m")
+if state["last_month"] != current_month:
+    if state["ban_count"] > state["mum_count"]:
+        st.info("❤️ Last month, the heart leaned more toward Bangalore.")
+    elif state["ban_count"] < state["mum_count"]:
+        st.info("💭 Last month wandered more toward Mumbai.")
+    else:
+        st.info("🤍 Last month stayed beautifully balanced.")
+    state["last_month"] = current_month
+    with open(DATA_FILE, "w") as f:
+        json.dump(state, f)
 
 st.markdown(f"**Last adjusted:** {state['last_updated']}")
 
-# ───────── SLIDER ─────────
+# ───────────────── SLIDER ─────────────────
 position = st.slider(
     "Compass Position",
     0,
@@ -86,7 +107,7 @@ position = st.slider(
     help="Left = Mumbai | Mid = Balance | Right = Bangalore"
 )
 
-# ───────── SAVE BUTTON ─────────
+# ───────────────── SAVE LOGIC ─────────────────
 if not locked_today:
     if after_915:
         if st.button("Save Today's Direction"):
@@ -98,31 +119,38 @@ if not locked_today:
 else:
     st.info("🔒 Direction locked for today.")
 
-# ───────── PLAYFUL MESSAGE ─────────
+# ───────────────── PLAYFUL MESSAGE ─────────────────
 if locked_today:
     if state["position"] > 50:
-        playful = "🐻💛 Teddy smiles… Bangalore wins today. That felt right."
+        if state["ban_streak"] >= 3:
+            playful = "🐻🏆 Bangalore again! Teddy is proud — this is becoming a habit."
+        else:
+            playful = "🐻💛 Teddy smiles. Bangalore feels right today."
     elif state["position"] < 50:
-        playful = "🐻😅 Teddy tilts head… Mumbai again? Hmm. Are you sure?"
+        playful = "🐻😅 Mumbai today… Teddy raises an eyebrow, but stays kind."
     else:
-        playful = "🐻🤍 Teddy waits patiently… stuck in the middle today."
+        playful = "🐻🤍 Teddy waits quietly. Some days don’t need choosing."
 else:
     if position > 50:
-        playful = "🐻✨ Ooo, leaning toward Bangalore already!"
+        playful = "🐻✨ Ooo… drifting toward Bangalore already!"
     elif position < 50:
-        playful = "🐻🙃 Teddy gently nudges right… just saying."
+        playful = "🐻🙃 Teddy gently nudges right. Just saying."
     else:
-        playful = "🐻🫶 Right in the middle. No pressure."
+        playful = "🐻🫶 Midway. No pressure."
 
 st.markdown(f"### {playful}")
 
-
-# ───────── COUNTERS ─────────
+# ───────────────── COUNTERS ─────────────────
 col1, col2 = st.columns(2)
-col1.metric("← Mum Days", state["mum_count"])
+
+col1.markdown(
+    f"<div style='opacity:0.6'>← Mum Days<br><b>{state['mum_count']}</b></div>",
+    unsafe_allow_html=True
+)
+
 col2.metric("Ban Days →", state["ban_count"])
 
-# ───────── SEMICIRCLE COMPASS ─────────
+# ───────────────── SEMICIRCLE COMPASS ─────────────────
 angle_deg = (state["position"] - 50) * 1.8
 angle_rad = math.radians(angle_deg)
 
