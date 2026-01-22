@@ -125,18 +125,18 @@ if locked_today:
         if state["ban_streak"] >= 3:
             playful = "🐻🏆 Bangalore again! Ro is proud — this is becoming a habit."
         else:
-            playful = "🐻💛 Teddy smiles. Bangalore feels right today."
+            playful = "🐻💛 Ro  smiles. Bangalore feels right today."
     elif state["position"] < 50:
         playful = "🐻😅 Mumbai today… RO raises an eyebrow, but stays kind."
     else:
         playful = "🐻🤍 Some days don’t need choosing."
 else:
     if position > 50:
-        playful = "Sahi ja rahi ho beta, aur jaao"
+        playful = "My dil goes mmmmmmmmmmmmmmmmmmmmmmmmmm"
     elif position < 50:
-        playful = "Yen pa, yake illi hogtira"
+        playful = "Jokin' are ya"
     else:
-        playful = "To aaj kaisa raha, pehle pani piyo"
+        playful = "Sab kushal mangal??"
 
 st.markdown(f"### {playful}")
 
