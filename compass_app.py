@@ -132,11 +132,11 @@ if locked_today:
         playful = "🐻🤍 Some days don’t need choosing."
 else:
     if position > 50:
-        playful = "My dil goes mmmmmmmmmmmmmmmmmmmmmmmmmm"
+        playful = "Hohohoho Haahahah Hehehehehe Hihihih "
     elif position < 50:
-        playful = "Jokin' are ya"
+        playful = "Chalo aaj ke lie de diya tumko mumbai"
     else:
-        playful = "Sab kushal mangal??"
+        playful = "U good bro"
 
 st.markdown(f"### {playful}")
 
