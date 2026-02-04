@@ -3,28 +3,71 @@ import json
 from datetime import datetime, date, time
 import math
 import pytz
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 # ───────────────── CONFIG ─────────────────
 DATA_FILE = "compass_state.json"
 IST = pytz.timezone("Asia/Kolkata")
-SAVE_TIME = time(9, 15)  # 9:15 AM IST
+SAVE_TIME = time(9, 15)
 
-# ───────────────── ROMANTIC QUOTES ─────────────────
-QUOTES = [
-    "Some distances are measured not in miles, but in missing.",
-    "Every direction feels empty when the heart knows where it belongs.",
-    "Longing is love’s way of pointing home.",
-    "Even silence remembers you.",
-    "I miss you in ways the compass cannot measure.",
-    "Between here and there, my heart waits.",
-    "Distance teaches the heart how deeply it feels.",
-    "Every day leans slightly toward where you are."
+# ───────────────── ROMANTIC QUOTES (REFRESHED) ─────────────────
+ROMANTIC_QUOTES = [
+    "Somewhere between here and there, my thoughts pause at you.",
+    "Distance has a strange way of making feelings louder.",
+    "Every quiet moment seems to remember you.",
+    "Even far away, you remain familiar.",
+    "The heart doesn’t ask where — it already knows.",
+    "Some days are measured only by missing.",
+    "The space between us feels strangely alive.",
+    "Not all directions are physical.",
+    "I keep finding you in small pauses of the day.",
+    "Even absence can feel close.",
+    "There’s a pull I don’t argue with anymore.",
+    "Somewhere, this direction makes sense."
 ]
 
 def daily_quote():
-    return QUOTES[date.today().toordinal() % len(QUOTES)]
+    return ROMANTIC_QUOTES[date.today().toordinal() % len(ROMANTIC_QUOTES)]
 
-# ───────────────── STATE FUNCTIONS ─────────────────
+# ───────────────── PLAYFUL MESSAGE POOLS ─────────────────
+BAN_MESSAGES = [
+    "💛 Bangalore again. The heart seems comfortable here.",
+    "✨ Drifted right — as if by instinct.",
+    "🌤 Leaning Bangalore feels… natural.",
+    "💫 This direction doesn’t need convincing.",
+    "🧡 Bangalore wins today, quietly but clearly.",
+    "🌻 Rightward again. No explanation offered."
+]
+
+MUM_MESSAGES = [
+    "😅 Mumbai today — interesting choice.",
+    "🤔 The heart glanced left… briefly.",
+    "🌧 Mumbai pulled for a moment.",
+    "🙃 Leftward today. We’ll allow it.",
+    "💭 Mumbai had its say.",
+    "😌 Some days wander before returning."
+]
+
+MID_MESSAGES = [
+    "🤍 Midway. No urgency, no preference.",
+    "🕊 Balanced today. Stillness counts.",
+    "⚪ Right in the middle — thoughtful pause.",
+    "🌫 Neither here nor there. Just breathing.",
+    "🫶 Some days don’t lean."
+]
+
+UNSAVED_MESSAGES = [
+    "🤍 Waiting quietly to be decided.",
+    "⏳ The compass rests for now.",
+    "🧭 Direction pending.",
+    "🌙 Still undecided today."
+]
+
+def pick_message(messages, seed):
+    return messages[seed % len(messages)]
+
+# ───────────────── STATE ─────────────────
 def load_state():
     try:
         with open(DATA_FILE, "r") as f:
@@ -34,20 +77,14 @@ def load_state():
             "position": 50,
             "last_updated": "1970-01-01",
             "ban_count": 0,
-            "mum_count": 0,
-            "ban_streak": 0,
-            "last_month": ""
+            "mum_count": 0
         }
 
 def save_state(position, state):
     if position > 50:
         state["ban_count"] += 1
-        state["ban_streak"] += 1
     elif position < 50:
         state["mum_count"] += 1
-        state["ban_streak"] = 0
-    else:
-        state["ban_streak"] = 0
 
     state["position"] = position
     state["last_updated"] = str(date.today())
@@ -63,91 +100,66 @@ after_915 = now_ist.time() >= SAVE_TIME
 state = load_state()
 locked_today = state["last_updated"] == today
 
-# Reset compass daily
+# Reset to midpoint every new day
 if not locked_today:
     state["position"] = 50
 
-# ───────────────── APP UI ─────────────────
+# ───────────────── UI ─────────────────
 st.set_page_config(page_title="Mumbai–Bangalore Compass", layout="centered")
-
-# Teddy image
-st.image(
-    "https://upload.wikimedia.org/wikipedia/commons/0/0b/Teddy_bear_2003.jpg",
-    width=90
-)
-
 st.title("🧭 Mumbai ↔ Bangalore Compass")
-st.caption("🧸")
 
-# Quote
 st.markdown(f"💌 *{daily_quote()}*")
-
-# Monthly summary
-current_month = date.today().strftime("%Y-%m")
-if state["last_month"] != current_month:
-    if state["ban_count"] > state["mum_count"]:
-        st.info("❤️ Last month, the heart leaned more toward Bangalore.")
-    elif state["ban_count"] < state["mum_count"]:
-        st.info("💭 Last month wandered more toward Mumbai.")
-    else:
-        st.info("🤍 Last month stayed beautifully balanced.")
-    state["last_month"] = current_month
-    with open(DATA_FILE, "w") as f:
-        json.dump(state, f)
-
 st.markdown(f"**Last adjusted:** {state['last_updated']}")
 
-# ───────────────── SLIDER ─────────────────
-position = st.slider(
-    "Compass Position",
-    0,
-    100,
-    value=int(state["position"]),
-    disabled=locked_today,
-    help="Left = Mumbai | Mid = Balance | Right = Bangalore"
+# ───────────────── SLIDER WITH LABELS ─────────────────
+st.markdown(
+    "<div style='display:flex; justify-content:space-between; font-weight:bold;'>"
+    "<span>Mumbai</span><span>Bangalore</span></div>",
+    unsafe_allow_html=True
 )
 
-# ───────────────── SAVE LOGIC ─────────────────
+position = st.slider(
+    "",
+    0, 100,
+    value=int(state["position"]),
+    disabled=locked_today,
+    help="Left = Mumbai | Mid = Balanced | Right = Bangalore"
+)
+
+# ───────────────── SAVE ─────────────────
 if not locked_today:
     if after_915:
         if st.button("Save Today's Direction"):
             save_state(position, state)
-            st.success("Saved. Direction remembered for today.")
+            st.success("Saved. Direction locked for today.")
             st.rerun()
     else:
-        st.warning("Saving opens after **9:15 AM IST**.")
+        st.warning("Saving enabled after **9:15 AM IST**.")
 else:
     st.info("🔒 Direction locked for today.")
 
-# ───────────────── PLAYFUL MESSAGE ─────────────────
+# ───────────────── PLAYFUL MESSAGE (REFRESHED LOGIC) ─────────────────
+seed = date.today().toordinal()
+
 if locked_today:
     if state["position"] > 50:
-        if state["ban_streak"] >= 3:
-            playful = "🐻🏆 Bangalore again! Ro is proud — this is becoming a habit."
-        else:
-            playful = "🐻💛 Ro  smiles. Bangalore feels right today."
+        playful = pick_message(BAN_MESSAGES, seed)
+        bias = "Bias → Bangalore"
     elif state["position"] < 50:
-        playful = "🐻😅 Mumbai today… RO raises an eyebrow, but stays kind."
+        playful = pick_message(MUM_MESSAGES, seed)
+        bias = "Bias → Mumbai"
     else:
-        playful = "🐻🤍 Some days don’t need choosing."
+        playful = pick_message(MID_MESSAGES, seed)
+        bias = "Balanced"
 else:
-    if position > 50:
-        playful = "Hohohoho Haahahah Hehehehehe Hihihih "
-    elif position < 50:
-        playful = "Chalo aaj ke lie de diya tumko mumbai"
-    else:
-        playful = "U good bro"
+    playful = pick_message(UNSAVED_MESSAGES, seed)
+    bias = "Not saved yet"
 
 st.markdown(f"### {playful}")
 
 # ───────────────── COUNTERS ─────────────────
 col1, col2 = st.columns(2)
-
-col1.markdown(
-    f"<div style='opacity:0.6'>← Mum Days<br><b>{state['mum_count']}</b></div>",
-    unsafe_allow_html=True
-)
-
+col1.metric("← Mum Days", state["mum_count"])
 col2.metric("Ban Days →", state["ban_count"])
 
 # ───────────────── SEMICIRCLE COMPASS ─────────────────
@@ -161,17 +173,12 @@ st.markdown("### 🧭 Compass")
 
 svg = f"""
 <svg width="420" height="240" viewBox="-1.4 -1.1 2.8 1.8">
-
-  <!-- Semicircle arc -->
   <path d="M -1 0 A 1 1 0 0 1 1 0"
         fill="none" stroke="black" stroke-width="0.03"/>
-
-  <!-- Needle -->
   <line x1="0" y1="0" x2="{x}" y2="{-abs(y)}"
         stroke="red" stroke-width="0.05"/>
   <circle cx="0" cy="0" r="0.05" fill="black"/>
 
-  <!-- Labels -->
   <rect x="-1.48" y="-0.12" width="0.48" height="0.24" fill="white"/>
   <text x="-1.24" y="0.08" font-size="0.2" font-weight="bold"
         text-anchor="middle">Mum</text>
@@ -183,8 +190,34 @@ svg = f"""
   <rect x="1.00" y="-0.12" width="0.48" height="0.24" fill="white"/>
   <text x="1.24" y="0.08" font-size="0.2" font-weight="bold"
         text-anchor="middle">Ban</text>
-
 </svg>
 """
 
 st.markdown(svg, unsafe_allow_html=True)
+
+# ───────────────── POSTCARD EXPORT ─────────────────
+def generate_postcard():
+    img = Image.new("RGB", (800, 500), "white")
+    draw = ImageDraw.Draw(img)
+
+    try:
+        font_big = ImageFont.truetype("DejaVuSans-Bold.ttf", 36)
+        font = ImageFont.truetype("DejaVuSans.ttf", 22)
+    except:
+        font_big = font = ImageFont.load_default()
+
+    draw.text((30, 30), "Mumbai ↔ Bangalore", fill="black", font=font_big)
+    draw.text((30, 90), f"Date: {today}", fill="black", font=font)
+    draw.text((30, 140), f"“{daily_quote()}”", fill="black", font=font)
+    draw.text((30, 220), f"Direction: {bias}", fill="black", font=font)
+    draw.text((30, 260), playful, fill="black", font=font)
+    draw.text((30, 330), f"Mumbai Days: {state['mum_count']}", fill="black", font=font)
+    draw.text((30, 360), f"Bangalore Days: {state['ban_count']}", fill="black", font=font)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return buf
+
+st.markdown("### 🎴 Daily Postcard")
+
